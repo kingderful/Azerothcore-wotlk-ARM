@@ -77,7 +77,7 @@ int32 irand(int32 min, int32 max);
 uint32 urand(uint32 min, uint32 max);
 
 /* Return a random number in the range 0 .. UINT32_MAX. */
-uint32 rand32();
+int32 rand32();
 
 /* Return a random number in the range min..max */
 float frand(float min, float max);
