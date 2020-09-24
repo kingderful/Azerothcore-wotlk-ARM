@@ -57,6 +57,7 @@ target_link_libraries(common
     g3dlib
     Detour
     sfmt
+    mersennetwister
     utf8cpp
     openssl
     threads
