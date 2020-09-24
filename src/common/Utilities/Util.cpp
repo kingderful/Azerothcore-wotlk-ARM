@@ -12,7 +12,7 @@
 #include "SQLOperation.h"
 #include "Errors.h"
 #include "TypeList.h"
-#include "SFMT.h"
+#include "MersenneTwister.h"
 #include "Errors.h" // for ASSERT
 #include <ace/TSS_T.h>
 #include <array>
@@ -20,52 +20,49 @@
 #include <string>
 #include <random>
 
-typedef ACE_TSS<SFMTRand> SFMTRandTSS;
-static SFMTRandTSS sfmtRand;
+typedef ACE_TSS<MTRand> MTRandTSS;
+static MTRandTSS mtRand;
 static SFMTEngine engine;
 
 int32 irand(int32 min, int32 max)
 {
-    ASSERT(max >= min);
-    return int32(sfmtRand->IRandom(min, max));
+            return int32(mtRand->randInt(max - min)) + min;
 }
 
 uint32 urand(uint32 min, uint32 max)
 {
-    ASSERT(max >= min);
-    return sfmtRand->URandom(min, max);
+            return mtRand->randInt(max - min) + min;
 }
 
 float frand(float min, float max)
 {
-    ASSERT(max >= min);
-    return float(sfmtRand->Random() * (max - min) + min);
+            return float(mtRand->randExc(max - min) + min);
 }
 
-uint32 rand32()
+int32 rand32()
 {
-    return int32(sfmtRand->BRandom());
+            return mtRand->randInt();
 }
 
-double rand_norm()
+double rand_norm(void)
 {
-    return sfmtRand->Random();
+            return mtRand->randExc();
 }
 
-double rand_chance()
+double rand_chance(void)
 {
-    return sfmtRand->Random() * 100.0;
+            return mtRand->randExc(100.0);
 }
 
 uint32 urandweighted(size_t count, double const* chances)
 {
-    std::discrete_distribution<uint32> dd(chances, chances + count);
-    return dd(SFMTEngine::Instance());
+            std::discrete_distribution<uint32> dd(chances, chances + count);
+                return dd(SFMTEngine::Instance());
 }
 
 SFMTEngine& SFMTEngine::Instance()
 {
-    return engine;
+            return engine;
 }
 
 Tokenizer::Tokenizer(const std::string& src, const char sep, uint32 vectorReserve)
