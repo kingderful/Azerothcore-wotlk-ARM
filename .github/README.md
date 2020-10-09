@@ -1,5 +1,7 @@
 # ![logo](https://raw.githubusercontent.com/azerothcore/azerothcore.github.io/master/images/logo-github.png) AzerothCore
 
+support Raspberry pi and other ARM platform!
+
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e61f4ea81de14b289fbf83d2b0da0c35)](https://app.codacy.com/app/FrancescoBorzi/azerothcore-wotlk?utm_source=github.com&utm_medium=referral&utm_content=azerothcore/azerothcore-wotlk&utm_campaign=Badge_Grade_Settings)
 [![core-build](https://github.com/azerothcore/azerothcore-wotlk/workflows/core-build/badge.svg?branch=master&event=push)](https://github.com/azerothcore/azerothcore-wotlk/actions?query=workflow%3Acore-build+branch%3Amaster+event%3Apush)
 <a href="https://scan.coverity.com/projects/azerothcore-azerothcore-wotlk">
