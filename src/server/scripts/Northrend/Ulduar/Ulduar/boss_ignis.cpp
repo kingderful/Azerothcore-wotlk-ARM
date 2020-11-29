@@ -125,15 +125,18 @@ public:
             }
             else if (spell->Id == SPELL_HEAT_BUFF)
             {
-                if (Aura* a = me->GetAura(SPELL_HEAT_BUFF))
-                    if( a->GetStackAmount() >= RAID_MODE(10, 20) )
+                if (Aura* heat = me->GetAura(SPELL_HEAT_BUFF))
+                {
+                    if (heat->GetStackAmount() >= 10)
                     {
-                        if (RAID_MODE(1, 0) && a->GetStackAmount() > 10) // prevent going over 10 on 10man version
-                            a->ModStackAmount(-1);
-
+                        if (heat->GetStackAmount() > 10)
+                        {
+                            heat->ModStackAmount(-1);
+                        }
                         me->CastSpell(me, SPELL_MOLTEN, true);
                         me->getThreatManager().resetAllAggro();
                     }
+                }
             }
         }
 
@@ -336,7 +339,7 @@ public:
             if (me->HasUnitState(UNIT_STATE_CASTING))
                 return;
 
-            switch (events.GetEvent())
+            switch (events.ExecuteEvent())
             {
                 case 0:
                     break;
@@ -347,7 +350,6 @@ public:
                         me->MonsterYell(TEXT_BERSERK, LANG_UNIVERSAL, 0);
                         me->PlayDirectSound(SOUND_BERSERK);
                         me->CastSpell(me, SPELL_BERSERK, true);
-                        events.PopEvent();
                         break;
                     }
                     events.RepeatEvent(RAID_MODE(40000, 30000));
@@ -373,7 +375,6 @@ public:
                 case EVENT_ENABLE_ROTATE:
                     me->SetControlled(false, UNIT_STATE_ROOT);
                     me->DisableRotate(false);
-                    events.PopEvent();
                     break;
                 case EVENT_SPELL_FLAME_JETS:
                     me->MonsterTextEmote(TEXT_FLAME_JETS, 0, true);
