@@ -1,5 +1,5 @@
     /*
- * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
+ * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license, you may redistribute it and/or modify it under version 2 of the License, or (at your option), any later version.
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  */
@@ -1136,11 +1136,12 @@ void Spell::EffectJumpDest(SpellEffIndex effIndex)
     // Override, calculations are incorrect
     if (m_spellInfo->Id == 49376) // feral charge
     {
-        speedXY = pow(speedZ * 10, 2);
+        speedXY = pow(speedZ * 10, 8);
         m_caster->GetMotionMaster()->MoveJump(x, y, z, speedXY, speedZ, 0, ObjectAccessor::GetUnit(*m_caster, m_caster->GetUInt64Value(UNIT_FIELD_TARGET)));
         return;
     }
-    else if (m_spellInfo->Id == 57604) // death grip
+
+    if (m_spellInfo->Id == 57604) // death grip
     {
         speedZ = 3.0f;
         speedXY = 50.0f;
@@ -2448,12 +2449,10 @@ void Spell::EffectSummonType(SpellEffIndex effIndex)
 
                         TempSummonType summonType = (duration <= 0) ? TEMPSUMMON_DEAD_DESPAWN : TEMPSUMMON_TIMED_DESPAWN;
 
-                        uint32 currMinionsCount = m_caster->m_Controlled.size();
-                        uint32 totalNumGuardians = numSummons + currMinionsCount;
                         for (uint32 count = 0; count < numSummons; ++count)
                         {
                             Position pos;
-                            if (totalNumGuardians == 1)
+                            if (count == 0)
                                 pos = *destTarget;
                             else
                                 // randomize position for multiple summons
@@ -5068,7 +5067,7 @@ void Spell::EffectCharge(SpellEffIndex /*effIndex*/)
                 m_caster->GetFirstCollisionPosition(pos, dist, angle);
             }
 
-            m_caster->GetMotionMaster()->MoveCharge(pos.m_positionX, pos.m_positionY, pos.m_positionZ);
+            m_caster->GetMotionMaster()->MoveCharge(pos.m_positionX, pos.m_positionY, pos.m_positionZ + Z_OFFSET_FIND_HEIGHT);
         }
     }
 
@@ -5497,7 +5496,7 @@ void Spell::EffectTransmitted(SpellEffIndex effIndex)
                 // end time of range when possible catch fish (FISHING_BOBBER_READY_TIME..GetDuration(m_spellInfo))
                 // start time == fish-FISHING_BOBBER_READY_TIME (0..GetDuration(m_spellInfo)-FISHING_BOBBER_READY_TIME)
                 int32 lastSec = 0;
-                switch (urand(0, 3))
+                switch (urand(0, 2))
                 {
                     case 0:
                         lastSec =  3;
@@ -5508,12 +5507,11 @@ void Spell::EffectTransmitted(SpellEffIndex effIndex)
                     case 2:
                         lastSec = 13;
                         break;
-                    case 3:
-                        lastSec = 17;
-                        break;
                 }
 
-                duration = duration - lastSec * IN_MILLISECONDS + FISHING_BOBBER_READY_TIME * IN_MILLISECONDS;
+                // Duration of the fishing bobber can't be higher than the Fishing channeling duration
+                duration = std::min(duration, duration - lastSec*IN_MILLISECONDS + FISHING_BOBBER_READY_TIME*IN_MILLISECONDS);
+
                 break;
             }
         case GAMEOBJECT_TYPE_SUMMONING_RITUAL:

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license: https://github.com/azerothcore/azerothcore-wotlk/blob/master/LICENSE-GPL2
+ * Copyright (C) 2016+     AzerothCore <www.azerothcore.org>, released under GNU GPL v2 license, you may redistribute it and/or modify it under version 2 of the License, or (at your option), any later version.
  * Copyright (C) 2008-2016 TrinityCore <http://www.trinitycore.org/>
  * Copyright (C) 2005-2009 MaNGOS <http://getmangos.com/>
  */
@@ -1742,6 +1742,40 @@ public:
     SpellScript* GetSpellScript() const override
     {
         return new spell_gen_cannibalize_SpellScript();
+    }
+};
+
+// 34098 - ClearAllDebuffs
+class spell_gen_clear_debuffs : public SpellScriptLoader
+{
+public:
+    spell_gen_clear_debuffs() : SpellScriptLoader("spell_gen_clear_debuffs") { }
+
+    class spell_gen_clear_debuffs_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_gen_clear_debuffs_SpellScript);
+
+        void HandleScript(SpellEffIndex /*effIndex*/)
+        {
+            if (Unit* target = GetHitUnit())
+            {
+                target->RemoveOwnedAuras([](Aura const* aura)
+                {
+                    SpellInfo const* spellInfo = aura->GetSpellInfo();
+                    return !spellInfo->IsPositive() && !spellInfo->IsPassive();
+                });
+            }
+        }
+
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_gen_clear_debuffs_SpellScript::HandleScript, EFFECT_0, SPELL_EFFECT_SCRIPT_EFFECT);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_gen_clear_debuffs_SpellScript();
     }
 };
 
@@ -5041,6 +5075,63 @@ public:
     }
 };
 
+class spell_gen_shadowmeld : public SpellScriptLoader
+{
+public:
+    spell_gen_shadowmeld() : SpellScriptLoader("spell_gen_shadowmeld") {}
+
+    class spell_gen_shadowmeld_SpellScript : public SpellScript
+    {
+        PrepareSpellScript(spell_gen_shadowmeld_SpellScript);
+
+        void HandleDummy(SpellEffIndex /*effIndex*/)
+        {
+            Unit* caster = GetCaster();
+            if (!caster)
+                return;
+
+            caster->InterruptSpell(CURRENT_AUTOREPEAT_SPELL); // break Auto Shot and autohit
+            caster->InterruptSpell(CURRENT_CHANNELED_SPELL); // break channeled spells
+
+            bool instant_exit = true;
+            if (Player* pCaster = caster->ToPlayer()) // if is a creature instant exits combat, else check if someone in party is in combat in visibility distance
+            {
+                uint64 myGUID = pCaster->GetGUID();
+                float visibilityRange = pCaster->GetMap()->GetVisibilityRange();
+                if (Group* pGroup = pCaster->GetGroup())
+                {
+                    const Group::MemberSlotList membersList = pGroup->GetMemberSlots();
+                    for (Group::member_citerator itr = membersList.begin(); itr != membersList.end() && instant_exit; ++itr)
+                        if (itr->guid != myGUID)
+                            if (Player* GroupMember = ObjectAccessor::GetPlayer(*pCaster, itr->guid))
+                                if (GroupMember->IsInCombat() && pCaster->GetMap() == GroupMember->GetMap() && pCaster->IsWithinDistInMap(GroupMember, visibilityRange))
+                                    instant_exit = false;
+                }
+
+                pCaster->SendAttackSwingCancelAttack();
+            }
+
+            if (!caster->GetInstanceScript() || !caster->GetInstanceScript()->IsEncounterInProgress()) //Don't leave combat if you are in combat with a boss
+            {
+                if (!instant_exit) {
+                    caster->getHostileRefManager().deleteReferences(); // exit combat after 6 seconds
+                }
+                else caster->CombatStop(); // isn't necessary to call AttackStop because is just called in CombatStop
+            }
+        }
+
+        void Register() override
+        {
+            OnEffectHitTarget += SpellEffectFn(spell_gen_shadowmeld_SpellScript::HandleDummy, EFFECT_1, SPELL_EFFECT_DUMMY);
+        }
+    };
+
+    SpellScript* GetSpellScript() const override
+    {
+        return new spell_gen_shadowmeld_SpellScript();
+    }
+};
+
 void AddSC_generic_spell_scripts()
 {
     // ours:
@@ -5097,6 +5188,7 @@ void AddSC_generic_spell_scripts()
     new spell_gen_av_drekthar_presence();
     new spell_gen_burn_brutallus();
     new spell_gen_cannibalize();
+    new spell_gen_clear_debuffs();
     new spell_gen_create_lance();
     new spell_gen_netherbloom();
     new spell_gen_nightmare_vine();
@@ -5170,4 +5262,5 @@ void AddSC_generic_spell_scripts()
     new spell_gen_eject_all_passengers();
     new spell_gen_eject_passenger();
     new spell_gen_charmed_unit_spell_cooldown();
+    new spell_gen_shadowmeld();
 }
